@@ -28,7 +28,7 @@ export sectors, invariant
 # tensor characteristics
 export spacetype, tensortype, numind, order
 # tensor constructors
-export tensor, tensorcat
+export tensor, tensorcat, to_range
 # index manipulations
 export insertind, deleteind, fuseind, splitind
 # tensor operations
@@ -45,12 +45,12 @@ export notrunc, truncerr, truncdim, truncspace
 export domain, codomain, hermitian, posdef, tensormap
 
 # tensor networks
-export AbstractTensorNetwork, TensorNetwork
-export network, optimizecontract
+#export AbstractTensorNetwork, TensorNetwork
+#export network, optimizecontract
 
 # General imports:
 #------------------
-using Cartesian
+using Base.Cartesian
 
 # Exception types:
 #------------------
@@ -84,7 +84,7 @@ include("compositespace.jl") # composing elementary vector spaces
 # Types and methods for tensors
 #-------------------------------
 import TensorOperations
-import TensorOperations: TCBuffer, defaultcontractbuffer
+#import TensorOperations: TCBuffer, defaultcontractbuffer
 # intentionally shadow original TensorOperation methods for StridedArray objects
 
 # define truncation schemes for tensors
@@ -99,9 +99,9 @@ include("tensors/invarianttensor.jl") # generic tensor living in a ProductSpace 
 
 # Tensor networks: contract a network of tensors
 #------------------------------------------------
-include("tensornetworks/abstracttensornetwork.jl")
-include("tensornetworks/tensornetwork.jl")
-include("tensornetworks/optimize.jl")
+#include("tensornetworks/abstracttensornetwork.jl")
+#include("tensornetworks/tensornetwork.jl")
+#include("tensornetworks/optimize.jl")
 
 # Tensor maps: linear maps acting on tensors
 #--------------------------------------------

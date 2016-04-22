@@ -1,6 +1,8 @@
 # sectors.jl
 # Explicit realization of sectors to be used for gradation of vector spaces.
 
+# TODO: Add prettier printing for charges.
+
 # Abelian Sectors:
 #-----------------
 immutable Parity <: Abelian

@@ -215,9 +215,11 @@ Base.vecnorm{S<:EuclideanSpace}(t::Tensor{S})=vecnorm(t.data) # frobenius norm
 # Base.getindex{S,T,N}(t::Tensor{S,T,N},b::ProductBasisVector{N,S})=getindex(t.data,Base.to_index(b))
 # Base.setindex!{S,T,N}(t::Tensor{S,T,N},value,b::ProductBasisVector{N,S})=setindex!(t.data,value,Base.to_index(b))
 
-@ngenerate N Array{T,N} function Base.getindex{G,T,N}(t::Tensor{AbelianSpace{G},T,N},s::NTuple{N,G})
-    @nexprs N n->(r_n=Base.to_range(s[n],space(t,n)))
-    return @ncall N slice t.data r
+@generated function Base.getindex{G,T,N}(t::Tensor{AbelianSpace{G},T,N},s::NTuple{N,G})
+    quote
+        @nexprs $N n->(r_n=to_range(s[n],space(t,n)))
+        return @ncall $N slice t.data r
+    end
 end
 
 Base.setindex!{G,T,N}(t::Tensor{AbelianSpace{G},T,N},v::Array,s::NTuple{N,G})=(length(v)==length(t[s]) ? copy!(t[s],v) : throw(DimensionMismatch()))
@@ -286,7 +288,7 @@ function tensortrace!(alpha::Number,A::Tensor,labelsA,beta::Number,C::Tensor,lab
     TensorOperations.tensortrace_native!(alpha,A.data,beta,C.data,oindA,cindA1,cindA2)
     return C
 end
-function tensorcontract!(alpha::Number,A::Tensor,labelsA,conjA::Char,B::Tensor,labelsB,conjB::Char,beta::Number,C::Tensor,labelsC;method=:BLAS,buffer::TCBuffer=defaultcontractbuffer)
+function tensorcontract!(alpha::Number,A::Tensor,labelsA,conjA::Char,B::Tensor,labelsB,conjB::Char,beta::Number,C::Tensor,labelsC;method=:BLAS)
     # Get properties of input arrays
     NA=numind(A)
     NB=numind(B)
@@ -350,7 +352,7 @@ function tensorcontract!(alpha::Number,A::Tensor,labelsA,conjA::Char,B::Tensor,l
     end
 
     if method==:BLAS
-        TensorOperations.tensorcontract_blas!(alpha,A.data,conjA,B.data,conjB,beta,C.data,buffer,oindA,cindA,oindB,cindB,oindCA,oindCB)
+        TensorOperations.tensorcontract_blas!(alpha,A.data,conjA,B.data,conjB,beta,C.data,oindA,cindA,oindB,cindB,oindCA,oindCB)
     elseif method==:native
         if NA>=NB
             TensorOperations.tensorcontract_native!(alpha,A.data,conjA,B.data,conjB,beta,C.data,oindA,cindA,oindB,cindB,oindCA,oindCB)

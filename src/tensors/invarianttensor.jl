@@ -148,14 +148,16 @@ Base.fill!{G,S,T}(tdest::InvariantTensor{G,S,T},value::Number)=fill!(tdest.data,
 Base.vec(t::InvariantTensor)=t.data
 # Convert the non-trivial degrees of freedom in a tensor to a vector to be passed to eigensolvers etc.
 
-@ngenerate N Array{T,N} function Base.full{G,S,T,N}(t::InvariantTensor{G,S,T,N})
-    dims=@ntuple N n->dim(space(t,n))
-    a=zeros(T,dims)
-    for s in sectors(t)
-        @nexprs N n->(r_{n}=Base.to_range(s[n],space(t,n)))
-        (@nref N a r) = t[s]
+@generated function Base.full{G,S,T,N}(t::InvariantTensor{G,S,T,N})
+    quote
+        dims=@ntuple $N n->dim(space(t,n))
+        a=zeros(T,dims)
+        for s in sectors(t)
+            @nexprs $N n->(r_{n}=to_range(s[n],space(t,n)))
+            (@nref $N a r) = t[s]
+        end
+        return a
     end
-    return a
 end
 
 
@@ -331,7 +333,7 @@ function tensortrace!(alpha::Number,A::InvariantTensor,labelsA,beta::Number,C::I
     end
     return C
 end
-function tensorcontract!(alpha::Number,A::InvariantTensor,labelsA,conjA::Char,B::InvariantTensor,labelsB,conjB::Char,beta::Number,C::InvariantTensor,labelsC;method=:BLAS,buffer::TCBuffer=defaultcontractbuffer)
+function tensorcontract!(alpha::Number,A::InvariantTensor,labelsA,conjA::Char,B::InvariantTensor,labelsB,conjB::Char,beta::Number,C::InvariantTensor,labelsC;method=:BLAS)
     # Get properties of input arrays
     NA=numind(A)
     NB=numind(B)
@@ -405,7 +407,7 @@ function tensorcontract!(alpha::Number,A::InvariantTensor,labelsA,conjA::Char,B:
         for sA in sectors(A), sB in sectors(B)
             if (conjA==conjB ? sA[cindA]==map(conj,sB[cindB]) : sA[cindA]==sB[cindB])
                 sC=tuple((conjA=='C' ? map(conj,sA) : sA)...,(conjB=='C' ? map(conj,sB) : sB)...)[posC]
-                TensorOperations.tensorcontract_blas!(alpha,A[sA],conjA,B[sB],conjB,betadict[sC],C[sC],buffer,oindA,cindA,oindB,cindB,oindCA,oindCB)
+                TensorOperations.tensorcontract_blas!(alpha,A[sA],conjA,B[sB],conjB,betadict[sC],C[sC],oindA,cindA,oindB,cindB,oindCA,oindCB)
                 betadict[sC]=one(beta)
             end
         end
@@ -414,7 +416,7 @@ function tensorcontract!(alpha::Number,A::InvariantTensor,labelsA,conjA::Char,B:
             for sA in sectors(A), sB in sectors(B)
                 if (conjA==conjB ? sA[cindA]==map(conj,sB[cindB]) : sA[cindA]==sB[cindB])
                     sC=tuple((conjA=='C' ? map(conj,sA) : sA)...,(conjB=='C' ? map(conj,sB) : sB)...)[posC]
-                    TensorOperations.tensorcontract_native!(alpha,A[sA],conjA,B[sB],conjB,betadict[sC],C[sC],buffer,oindA,cindA,oindB,cindB,oindCA,oindCB)
+                    TensorOperations.tensorcontract_native!(alpha,A[sA],conjA,B[sB],conjB,betadict[sC],C[sC],oindA,cindA,oindB,cindB,oindCA,oindCB)
                     betadict[sC]=one(beta)
                 end
             end
@@ -422,7 +424,7 @@ function tensorcontract!(alpha::Number,A::InvariantTensor,labelsA,conjA::Char,B:
             for sA in sectors(A), sB in sectors(B)
                 if (conjA==conjB ? sA[cindA]==map(conj,sB[cindB]) : sA[cindA]==sB[cindB])
                     sC=tuple((conjA=='C' ? map(conj,sA) : sA)...,(conjB=='C' ? map(conj,sB) : sB)...)[posC]
-                    TensorOperations.tensorcontract_native!(alpha,B[sB],conjB,A[sA],conjA,betadict[sC],C[sC],buffer,oindB,cindB,oindA,cindA,oindCB,oindCA)
+                    TensorOperations.tensorcontract_native!(alpha,B[sB],conjB,A[sA],conjA,betadict[sC],C[sC],oindB,cindB,oindA,cindA,oindCB,oindCA)
                     betadict[sC]=one(beta)
                 end
             end

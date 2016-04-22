@@ -75,34 +75,41 @@ sectortype{S<:UnitaryRepresentationSpace}(::Type{S}) = sectortype(super(S))
 include("spaces/abelianspace.jl")
 
 # Auxiliary functionality:
+#This returns the dimension of the degeneracy space specified by the irrep label assignment s.
 _dim{G<:Sector,N}(spaces::NTuple{N,UnitaryRepresentationSpace{G}},s::NTuple{N,G})=(d=1;for n=1:N;d*=dim(spaces[n],s[n]);end;return d)
 
-@ngenerate N Vector{NTuple{N,G}} function _sectors{G<:Sector,N}(spaces::NTuple{N,UnitaryRepresentationSpace{G}})
-    numsectors=1
-    @nexprs N i->(s_i=collect(sectors(spaces[i]));numsectors*=length(s_i))
-    sectorlist=Array(NTuple{N,G},numsectors)
-    counter=0
-    @nloops N i d->1:length(s_d) begin
-        counter+=1
-        sectorlist[counter]=@ntuple N k->s_k[i_k]
+#This function returns all possible irrep label assignments for a space of indices
+@generated function _sectors{G<:Sector,N}(spaces::NTuple{N,UnitaryRepresentationSpace{G}})
+    quote
+        numsectors=1
+        @nexprs $N i->(s_i=collect(sectors(spaces[i]));numsectors*=length(s_i))
+        sectorlist=Array(NTuple{N,G},numsectors)
+        counter=0
+        @nloops $N i d->1:length(s_d) begin
+            counter+=1
+            sectorlist[counter]=@ntuple $N k->s_k[i_k]
+        end
+        return sectorlist
     end
-    return sectorlist
 end
 
-@ngenerate N Vector{NTuple{N,G}} function _invariantsectors{G<:Abelian,N}(spaces::NTuple{N,AbelianSpace{G}})
-    @nexprs N i->(s_i=collect(sectors(spaces[i])))
-    sectorlist=Array(NTuple{N,G},0)
-    @nloops N i d->1:length(s_d) begin
-        sector=@ntuple N k->s_k[i_k]
-        c=one(G)
-        for n=1:N
-            c*=sector[n]
+#This function finds the combinations of irrep labels that can habe nonzero value in an invariant tensor
+@generated function _invariantsectors{G<:Abelian,N}(spaces::NTuple{N,AbelianSpace{G}})
+    quote
+        @nexprs $N i->(s_i=collect(sectors(spaces[i]))) #generates s_n = collect(sectors(spaces[i])) for n in 1:N
+        sectorlist=Array(NTuple{N,G},0) #a sector is specified by N irrep labels (instances of G)
+        @nloops $N i d->1:length(s_d) begin #generates N nested loops: for i_n in 1:length(s_n)
+            sector=@ntuple $N k->s_k[i_k]   #creates an N-tuple: (s_1[i_1], s_2[i_2], ..., s_N[i_N]) 
+            c=one(G)
+            for n=1:N
+                c*=sector[n] #fuses all the irrep labels in sector
+            end
+            if c==one(G) #if they fuse to the trivial irrep, we've found an allowed block: add to the list!
+                push!(sectorlist,sector)
+            end
         end
-        if c==one(G)
-            push!(sectorlist,sector)
-        end
+        return sectorlist
     end
-    return sectorlist
 end
 
 
