@@ -60,7 +60,7 @@ tensor(data::Array,V::ElementarySpace)=tensor(data,⊗(V))
 # without data
 tensor{T}(::Type{T},P::ProductSpace)=tensor(Array(T,dim(P)),P)
 tensor{T}(::Type{T},V::IndexSpace)=tensor(T,⊗(V))
-tensor(V::Union(ProductSpace,IndexSpace))=tensor(Float64,V)
+tensor(V::Union{ProductSpace,IndexSpace})=tensor(Float64,V)
 
 Base.similar{S,T,N}(t::Tensor{S},::Type{T},P::ProductSpace{S,N}=space(t))=tensor(similar(t.data,T,dim(P)),P)
 Base.similar{S,T}(t::Tensor{S},::Type{T},V::S)=similar(t,T,⊗(V))
@@ -71,11 +71,11 @@ Base.zero(t::Tensor)=tensor(zero(t.data),space(t))
 
 Base.zeros{T}(::Type{T},P::ProductSpace)=tensor(zeros(T,dim(P)),P)
 Base.zeros{T}(::Type{T},V::IndexSpace)=zeros(T,⊗(V))
-Base.zeros(V::Union(ProductSpace,IndexSpace))=zeros(Float64,V)
+Base.zeros(V::Union{ProductSpace,IndexSpace})=zeros(Float64,V)
 
 Base.rand{T}(::Type{T},P::ProductSpace)=tensor(rand(T,dim(P)),P)
 Base.rand{T}(::Type{T},V::IndexSpace)=rand(T,⊗(V))
-Base.rand(V::Union(ProductSpace,IndexSpace))=rand(Float64,V)
+Base.rand(V::Union{ProductSpace,IndexSpace})=rand(Float64,V)
 
 Base.eye{S<:ElementarySpace,T}(::Type{T},::Type{ProductSpace},V::S)=tensor(eye(T,dim(V)),V⊗dual(V))
 Base.eye{S<:ElementarySpace}(::Type{ProductSpace},V::S)=eye(Float64,ProductSpace,V)
@@ -156,7 +156,7 @@ Base.convert{S,T1,T2,N}(::Type{Tensor{S,T1,N}},t::Tensor{S,T2,N})=copy!(similar(
 Base.convert{S,T}(::Type{Tensor{S,T}},t::Tensor{S,T})=t
 Base.convert{S,T1,T2}(::Type{Tensor{S,T1}},t::Tensor{S,T2})=copy!(similar(t,T1),t)
 
-Base.float{S,T<:FloatingPoint}(t::Tensor{S,T})=t
+Base.float{S,T<:AbstractFloat}(t::Tensor{S,T})=t
 Base.float(t::Tensor)=tensor(float(t.data),space(t))
 
 Base.real{S,T<:Real}(t::Tensor{S,T})=t
@@ -446,7 +446,7 @@ for (S,TT) in ((CartesianSpace,CartesianTensor),(ComplexSpace,ComplexTensor))
         return U,S,V,abs(zero(eltype(t)))
     end
 
-    @eval function svd!(t::$TT,n::Int,trunc::Union(TruncationDimension,TruncationSpace))
+    @eval function svd!(t::$TT,n::Int,trunc::Union{TruncationDimension,TruncationSpace})
         # Truncate rank corresponding to bipartition into left indices 1:n
         # and remain right indices, based on singular value decomposition,
         # thereby destroying the original tensor.
@@ -562,7 +562,7 @@ for (S,TT) in ((CartesianSpace,CartesianTensor),(ComplexSpace,ComplexTensor))
         return tensor(U,leftspace*newspace'), tensor(C,newspace*rightspace), abs(zero(eltype(t)))
     end
 
-    @eval function leftorth!(t::$TT,n::Int,trunc::Union(TruncationDimension,TruncationSpace))
+    @eval function leftorth!(t::$TT,n::Int,trunc::Union{TruncationDimension,TruncationSpace})
         # Truncate rank corresponding to bipartition into left indices 1:n
         # and remain right indices, based on singular value decomposition,
         # thereby destroying the original tensor.
@@ -679,7 +679,7 @@ for (S,TT) in ((CartesianSpace,CartesianTensor),(ComplexSpace,ComplexTensor))
         return tensor(C,leftspace ⊗ dual(newspace)), tensor(U,newspace ⊗ rightspace), abs(zero(eltype(t)))
     end
 
-    @eval function rightorth!(t::$TT,n::Int,trunc::Union(TruncationDimension,TruncationSpace))
+    @eval function rightorth!(t::$TT,n::Int,trunc::Union{TruncationDimension,TruncationSpace})
         # Truncate rank corresponding to bipartition into left indices 1:n
         # and remain right indices, based on singular value decomposition,
         # thereby destroying the original tensor.
@@ -758,7 +758,7 @@ end
 typealias ComplexMatrix{T} ComplexTensor{T,2}
 typealias CartesianMatrix{T} CartesianTensor{T,2}
 
-function Base.pinv(t::Union(ComplexMatrix,CartesianMatrix))
+function Base.pinv(t::Union{ComplexMatrix,CartesianMatrix})
     # Compute pseudo-inverse
     spacet=space(t)
     data=copy(t.data)
@@ -776,7 +776,7 @@ function Base.pinv(t::Union(ComplexMatrix,CartesianMatrix))
     return tensor(data,spacet')
 end
 
-function Base.eig(t::Union(ComplexMatrix,CartesianMatrix))
+function Base.eig(t::Union{ComplexMatrix,CartesianMatrix})
     # Compute eigenvalue decomposition.
     spacet=space(t)
     spacet[1] == spacet[2]' || throw(SpaceError("eigenvalue factorization only exists if left and right index space are dual"))
@@ -789,7 +789,7 @@ function Base.eig(t::Union(ComplexMatrix,CartesianMatrix))
     return Lambda, V
 end
 
-function Base.inv(t::Union(ComplexMatrix,CartesianMatrix))
+function Base.inv(t::Union{ComplexMatrix,CartesianMatrix})
     # Compute inverse.
     spacet=space(t)
     spacet[1] == spacet[2]' || throw(SpaceError("inverse only exists if left and right index space are dual"))

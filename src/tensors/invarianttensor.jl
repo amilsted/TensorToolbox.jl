@@ -176,7 +176,7 @@ Base.convert{G,S,T1,T2,N}(::Type{InvariantTensor{G,S,T1,N}},t::InvariantTensor{G
 Base.convert{G,S,T}(::Type{InvariantTensor{G,S,T}},t::InvariantTensor{G,S,T})=t
 Base.convert{G,S,T1,T2}(::Type{InvariantTensor{G,S,T1}},t::InvariantTensor{G,S,T2})=copy!(similar(t,T1),t)
 
-Base.float{G,S,T<:FloatingPoint}(t::InvariantTensor{G,S,T})=t
+Base.float{G,S,T<:AbstractFloat}(t::InvariantTensor{G,S,T})=t
 Base.float(t::InvariantTensor)=tensor(float(t.data),space(t))
 
 Base.real{G,S,T<:Real}(t::InvariantTensor{G,S,T})=t
@@ -1645,7 +1645,7 @@ end
 # typealias ComplexMatrix{T} ComplexTensor{T,2}
 # typealias CartesianMatrix{T} CartesianTensor{T,2}
 #
-# function Base.pinv(t::Union(ComplexMatrix,CartesianMatrix))
+# function Base.pinv(t::Union{ComplexMatrix,CartesianMatrix})
 #     # Compute pseudo-inverse
 #     spacet=space(t)
 #     data=copy(t.data)
@@ -1663,7 +1663,7 @@ end
 #     return tensor(data,spacet')
 # end
 #
-# function Base.eig(t::Union(ComplexMatrix,CartesianMatrix))
+# function Base.eig(t::Union{ComplexMatrix,CartesianMatrix})
 #     # Compute eigenvalue decomposition.
 #     spacet=space(t)
 #     spacet[1] == spacet[2]' || throw(SpaceError("eigenvalue factorization only exists if left and right index space are dual"))
@@ -1676,7 +1676,7 @@ end
 #     return Lambda, V
 # end
 #
-# function Base.inv(t::Union(ComplexMatrix,CartesianMatrix))
+# function Base.inv(t::Union{ComplexMatrix,CartesianMatrix})
 #     # Compute inverse.
 #     spacet=space(t)
 #     spacet[1] == spacet[2]' || throw(SpaceError("inverse only exists if left and right index space are dual"))

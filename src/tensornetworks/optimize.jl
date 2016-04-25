@@ -61,7 +61,7 @@ type SubGraph{T}
     tensorset::BitVector
     labelset::BitVector
     dualset::BitVector
-    tree::Union(Int,Tuple)
+    tree::Union{Int,Tuple}
     cost::T
 end
 

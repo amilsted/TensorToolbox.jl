@@ -102,7 +102,7 @@ end
 -{D}(p::Poly{D})=Poly{D}(-p.coeffs)
 -{D}(p::Poly{D},s::Number)=Poly{D}([p[i]+(i==0 ? s : zero(s)) for i=0:degree(p)])
 -{D}(s::Number,p::Poly{D})=Poly{D}([-p[i]+(i==0 ? s : zero(s)) for i=0:degree(p)])
--{D}(p1::Union(Power{D},Poly{D}),p2::Union(Power{D},Poly{D}))=Poly{D}([p1[i]-p2[i] for i=0:max(degree(p1),degree(p2))])
+-{D}(p1::Union{Power{D},Poly{D}},p2::Union{Power{D},Poly{D}})=Poly{D}([p1[i]-p2[i] for i=0:max(degree(p1),degree(p2))])
 
 *{D}(p1::Power{D},p2::Poly{D})=Poly{D}([p1.coeff*p2[n-degree(p1)] for n=0:degree(p1)+degree(p2)])
 *{D}(p1::Poly{D},p2::Power{D})=*(p2,p1)

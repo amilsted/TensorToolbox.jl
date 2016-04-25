@@ -50,6 +50,7 @@ export domain, codomain, hermitian, posdef, tensormap
 
 # General imports:
 #------------------
+importall Base
 using Base.Cartesian
 
 # Exception types:
@@ -57,13 +58,13 @@ using Base.Cartesian
 abstract TensorException <: Exception
 
 type SpaceError <: TensorException
-    message::String
+    message::AbstractString
 end
 SpaceError()=SpaceError("Space mismatch")
 # Exception type for all errors related to vector space mismatch
 
 type IndexError <: TensorException
-    message::String
+    message::AbstractString
 end
 IndexError()=IndexError("Invalid index specification")
 # Exception type for all errors related to invalid tensor index specification.

@@ -24,7 +24,7 @@ abstract HilbertSpace{F} <: InnerProductSpace{F}
 const ℝ=Real
 const ℂ=Complex{Real}
 
-abstract EuclideanSpace{F<:Union(ℝ,ℂ)} <: HilbertSpace{F}
+abstract EuclideanSpace{F<:Union{ℝ,ℂ}} <: HilbertSpace{F}
 # Elementary finite-dimensional space R^d or C^d with standard (Euclidean) inner product (i.e. orthonormal basis)
 
 Base.conj(V::EuclideanSpace) = dual(V)
