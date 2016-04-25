@@ -214,14 +214,14 @@ end
     end
     return false
 end
-@inline function contractcost{D}(spaces::(Power{D,Int},Power{D,Int}...),olabels1::BitVector,olabels2::BitVector,clabels::BitVector,dualset1::BitVector,dualset2::BitVector)
+@inline function contractcost{D}(spaces::Tuple{Power{D,Int}, Vararg{Power{D,Int}}},olabels1::BitVector,olabels2::BitVector,clabels::BitVector,dualset1::BitVector,dualset2::BitVector)
     cost=Power{D,Int}(1,0)
     for n in find(olabels1 | olabels2 | clabels)
         cost*=spaces[n]
     end
     return cost
 end
-@inline function contractcost{T<:Number}(spaces::(T,T...),olabels1::BitVector,olabels2::BitVector,clabels::BitVector,dualset1::BitVector,dualset2::BitVector)
+@inline function contractcost{T<:Number}(spaces::Tuple{T, Vararg{T}},olabels1::BitVector,olabels2::BitVector,clabels::BitVector,dualset1::BitVector,dualset2::BitVector)
     cost=T(0)
     for n in find(olabels1 | olabels2 | clabels)
         cost*=spaces[n]
