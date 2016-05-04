@@ -24,7 +24,7 @@ immutable InvariantTensor{G,S,T,N} <: AbstractTensor{S,InvariantSpace,T,N}
         _datasectors=Dict{NTuple{N,G},Array{T,N}}()
         ind=1
         for s in sectors(space)
-            dims=ntuple(N,n->dim(space[n],s[n]))
+            dims=ntuple(n->dim(space[n],s[n]),N)
             _datasectors[s]=pointer_to_array(pointer(data,ind),dims)
             ind+=prod(dims)
         end
@@ -121,7 +121,7 @@ Base.eye{G<:Sector,S<:UnitaryRepresentationSpace}(P::InvariantSpace{G,S,2})=eye(
 
 #     offset = zeros(Int,numindC)
 #     for i=1:nargs
-#         currentdims=ntuple(numindC,n->dim(space(X[i],n)))
+#         currentdims=ntuple(n->dim(space(X[i],n)),numindC)
 #         currentrange=[offset[n]+(1:currentdims[n]) for n=1:numindC]
 #         dataC[currentrange...] = X[i].data
 #         for n in catind

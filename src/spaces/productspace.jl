@@ -19,8 +19,8 @@ sectortype{S<:UnitaryRepresentationSpace}(P::ProductSpace{S})=sectortype(S)
 sectortype{S<:UnitaryRepresentationSpace,N}(::Type{ProductSpace{S,N}})=sectortype(S)
 
 # Convention on dual, conj, transpose and ctranspose of tensor product spaces
-dual{S,N}(P::ProductSpace{S,N}) = ProductSpace{S,N}(ntuple(N,n->dual(P[n])))
-Base.conj{S,N}(P::ProductSpace{S,N}) = ProductSpace{S,N}(ntuple(N,n->conj(P[n])))
+dual{S,N}(P::ProductSpace{S,N}) = ProductSpace{S,N}(ntuple(n->dual(P[n]),N))
+Base.conj{S,N}(P::ProductSpace{S,N}) = ProductSpace{S,N}(ntuple(n->conj(P[n]),N))
 
 Base.transpose(P::ProductSpace) = reverse(P)
 Base.ctranspose(P::ProductSpace) = reverse(conj(P))

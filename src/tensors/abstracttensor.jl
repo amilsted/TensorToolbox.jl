@@ -115,7 +115,7 @@ end
 function tensortrace(A::AbstractTensor,labelsA) # there is no one-line method to compute the default outputlabels
     ulabelsA=unique(labelsA)
     labelsC=similar(labelsA,0)
-    sizehint(labelsC,length(ulabelsA))
+    sizehint!(labelsC,length(ulabelsA))
     for j=1:length(ulabelsA)
         ind=findfirst(labelsA,ulabelsA[j])
         if findnext(labelsA,ulabelsA[j],ind+1)==0

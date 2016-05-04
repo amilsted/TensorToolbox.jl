@@ -112,7 +112,7 @@ function _optimizecontract{P,T}(spaces::Vector{P},labels::AbstractVector,initcos
     numcomponent=length(componentlist)
     
     # construct a list of the spaces of all labels
-    labelspaces=P(ntuple(numlabels,j->spaces[tabletensor[j,1]][tableindex[j]]))
+    labelspaces=P(ntuple(j->spaces[tabletensor[j,1]][tableindex[j]],numlabels))
 
     # generate output structures
     costlist=Array(T,numcomponent)

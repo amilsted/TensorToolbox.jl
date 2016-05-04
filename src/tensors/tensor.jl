@@ -114,7 +114,7 @@ function tensorcat{S}(catind, X::Tensor{S}...)
 
     offset = zeros(Int,numindC)
     for i=1:nargs
-        currentdims=ntuple(numindC,n->dim(space(X[i],n)))
+        currentdims=ntuple(n->dim(space(X[i],n)),numindC)
         currentrange=[offset[n]+(1:currentdims[n]) for n=1:numindC]
         dataC[currentrange...] = X[i].data
         for n in catind

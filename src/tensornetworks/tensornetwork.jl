@@ -47,7 +47,7 @@ function TensorNetwork{S,P,T,L}(tensors::Vector{AbstractTensor{S,P,T}},labels::V
     
     # build lookup table for output spaces
     outputspaces=Dict{L,S}()
-    sizehint(outputspaces,2*numlabels-numindices)
+    sizehint!(outputspaces,2*numlabels-numindices)
     for i=1:numindices
         if table[i,2]==0
             n=table[i,1]
@@ -108,7 +108,7 @@ function TensorNetwork{S,P,T,L}(tensors::Vector{AbstractTensor{S,P,T}},labels::V
     
     # build lookup table for output spaces
     outputspaces=Dict{L,S}()
-    sizehint(outputspaces,2*numlabels-numindices)
+    sizehint!(outputspaces,2*numlabels-numindices)
     for i=1:numindices
         if table[i,2]==0
             n=table[i,1]
@@ -197,7 +197,7 @@ Base.length(network::TensorNetwork)=length(network.tensors)
 #-----------------------------------------------------
 numind(network::TensorNetwork)=length(network.outputorder)
 space(network::TensorNetwork,ind::Integer)=network.outputspaces[network.outputorder[ind]]
-space(network::TensorNetwork)=ntuple(numind(network),ind->space(network,ind))
+space(network::TensorNetwork)=ntuple(ind->space(network,ind),numind(network))
 
 # Compute the output tensor:
 #----------------------------

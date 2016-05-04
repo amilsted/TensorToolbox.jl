@@ -17,7 +17,7 @@ InvariantSpace{S<:UnitaryRepresentationSpace}(V::S,Vlist::S...) = InvariantSpace
 function InvariantSpace{G<:Abelian,N}(spaces::NTuple{N,AbelianSpace{G}})
     sectorlist=_invariantsectors(spaces)
     dims=Dict{eltype(sectorlist),Int}()
-    sizehint(dims,length(sectorlist))
+    sizehint!(dims,length(sectorlist))
     for s in sectorlist
         dims[s]=_dim(spaces,s)
     end
@@ -45,7 +45,7 @@ sectortype{G,S,N}(::Type{InvariantSpace{G,S,N}}) = G
 ⊗{G,S}(P1::InvariantSpace{G,S}, V2::S) = ProductSpace(tuple(P1.spaces..., V2))
 
 # Convention on dual, conj, transpose and ctranspose of tensor product spaces
-dual{G,S,N}(P::InvariantSpace{G,S,N}) = InvariantSpace{G,S,N}(ntuple(N,n->dual(P[n])),[conj(s)=>dim(P,s) for s in sectors(P)])
+dual{G,S,N}(P::InvariantSpace{G,S,N}) = InvariantSpace{G,S,N}(ntuple(n->dual(P[n]),N),[conj(s)=>dim(P,s) for s in sectors(P)])
 Base.conj(P::InvariantSpace) = dual(P) # since all AbelianSpaces are EuclideanSpaces
 
 Base.transpose(P::InvariantSpace) = reverse(P)
