@@ -26,14 +26,14 @@ export ⊗, ℂ, ℝ # some unicode
 export sectors, invariant
 
 # tensor characteristics
-export spacetype, tensortype, numind, order
+export spacetype, tensortype, order
 # tensor constructors
 export tensor, tensorcat, to_range
 # index manipulations
 export insertind, deleteind, fuseind, splitind
 # tensor operations
-export tensorcopy, tensoradd, tensortrace, tensorcontract, tensorproduct
-export tensorcopy!, tensoradd!, tensortrace!, tensorcontract!, tensorproduct!
+#export tensorcopy, tensoradd, tensortrace, tensorcontract, tensorproduct
+#export tensorcopy!, tensoradd!, tensortrace!, tensorcontract!, tensorproduct!
 # tensor factorizations
 export leftorth, rightorth
 export leftorth!, rightorth!, svd!
@@ -45,13 +45,17 @@ export notrunc, truncerr, truncdim, truncspace
 export domain, codomain, hermitian, posdef, tensormap
 
 # tensor networks
-#export AbstractTensorNetwork, TensorNetwork
-#export network, optimizecontract
+export AbstractTensorNetwork, TensorNetwork
+export network, optimizecontract
 
 # General imports:
 #------------------
 importall Base
 using Base.Cartesian
+
+using TensorOperations
+import TensorOperations.numind
+import TensorOperations.scalar
 
 # Exception types:
 #------------------

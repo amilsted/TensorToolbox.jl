@@ -32,9 +32,9 @@ Base.eltype{S<:IndexSpace,P<:TensorSpace,T}(::Type{AbstractTensor{S,P,T}})=T
 Base.eltype{S<:IndexSpace,P<:TensorSpace,T,N}(::Type{AbstractTensor{S,P,T,N}})=T
 Base.eltype{TT<:AbstractTensor}(::Type{TT}) = eltype(super(TT))
 
-numind{S,P,T,N}(::AbstractTensor{S,P,T,N})=N
-numind{S,P<:TensorSpace,T,N}(::Type{AbstractTensor{S,P,T,N}})=N
-numind{TT<:AbstractTensor}(::Type{TT})=numind(super(TT))
+TensorOperations.numind{S,P,T,N}(::AbstractTensor{S,P,T,N})=N
+TensorOperations.numind{S,P<:TensorSpace,T,N}(::Type{AbstractTensor{S,P,T,N}})=N
+TensorOperations.numind{TT<:AbstractTensor}(::Type{TT})=numind(super(TT))
 
 dim(t::AbstractTensor)=dim(space(t))
 sectors(t::AbstractTensor)=sectors(space(t))
