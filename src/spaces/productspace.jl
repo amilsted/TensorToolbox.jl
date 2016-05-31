@@ -9,6 +9,9 @@ end
 ProductSpace{S<:ElementarySpace}(V::S,Vlist::S...) = ProductSpace(tuple(V,Vlist...))
 ProductSpace(P::ProductSpace) = P
 
+# This one is needed for unambiguous treatment of zero-dimensional ProductSpaces
+ProductSpace{S<:ElementarySpace,N}(::Type{S}, spaces::NTuple{N,S}) = ProductSpace{S,N}(spaces)
+
 # Corresponding methods
 dim(P::ProductSpace) = (d::Int=1;for V in P;d*=dim(V);end;return d)
 iscnumber(P::ProductSpace) = all(iscnumber,P)
@@ -26,16 +29,16 @@ Base.transpose(P::ProductSpace) = reverse(P)
 Base.ctranspose(P::ProductSpace) = reverse(conj(P))
 
 # Default construction from product of spaces:
-⊗{S<:ElementarySpace}(V1::S, V2::S) = ProductSpace((V1, V2))
-⊗{S<:ElementarySpace}(P1::ProductSpace{S}, V2::S) = ProductSpace(tuple(P1.spaces..., V2))
-⊗{S<:ElementarySpace}(V1::S, P2::ProductSpace{S}) = ProductSpace(tuple(V1, P2.spaces...))
-⊗{S<:ElementarySpace}(P1::ProductSpace{S}, P2::ProductSpace{S}) = ProductSpace(tuple(P1.spaces..., P2.spaces...))
+⊗{S<:ElementarySpace}(V1::S, V2::S) = ProductSpace(S, (V1, V2))
+⊗{S<:ElementarySpace}(P1::ProductSpace{S}, V2::S) = ProductSpace(S, tuple(P1.spaces..., V2))
+⊗{S<:ElementarySpace}(V1::S, P2::ProductSpace{S}) = ProductSpace(S, tuple(V1, P2.spaces...))
+⊗{S<:ElementarySpace}(P1::ProductSpace{S}, P2::ProductSpace{S}) = ProductSpace(S, tuple(P1.spaces..., P2.spaces...))
 
 # Functionality for extracting and iterating over spaces
 Base.length{S,N}(P::ProductSpace{S,N}) = N
 Base.endof(P::ProductSpace) = length(P)
 Base.getindex(P::ProductSpace, n::Integer) = P.spaces[n]
-Base.getindex(P::ProductSpace, r)=ProductSpace(P.spaces[r])
+Base.getindex{S<:ElementarySpace}(P::ProductSpace{S}, r) = ProductSpace(S, P.spaces[r])
 
 Base.reverse(P::ProductSpace)=ProductSpace(reverse(P.spaces))
 Base.map(f::Base.Callable,P::ProductSpace) = map(f,P.spaces) # required to make map(dim,P) efficient

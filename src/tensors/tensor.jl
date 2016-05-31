@@ -279,12 +279,12 @@ function TensorOperations.contract!{CA,CB,ME}(α, A::Tensor, ::Type{Val{CA}}, B:
     spaceB = CB == :C ? conj(space(B)) : space(B)
     spaceC = space(C)
 
-    cspaceA = length(cindA) > 0 ? spaceA[cindA] : []
-    cspaceB = length(cindB) > 0 ? spaceB[cindB] : []
+    cspaceA = spaceA[cindA]
+    cspaceB = spaceB[cindB]
 
-    ospaceA = length(oindA) > 0 ? spaceA[oindA] : ProductSpace(cnumber(typeof(spaceA[1])))
-    ospaceB = length(oindB) > 0 ? spaceB[oindB] : ProductSpace(cnumber(typeof(spaceB[1])))
-    
+    ospaceA = spaceA[oindA]
+    ospaceB = spaceB[oindB]
+
     ospaceAB = ospaceA ⊗ ospaceB
 
     for i = 1:length(cspaceA)
@@ -315,9 +315,7 @@ function TensorOperations.similar_from_indices{T,CA,CB}(::Type{T}, indices, A::T
     spaceA = CA == :C ? conj(space(A)) : space(A)
     spaceB = CB == :C ? conj(space(B)) : space(B)
     spaceAB = spaceA ⊗ spaceB
-    #Handle indices=[]... should create a scalar in that case. Use a cnumber VectorSpace?
-    spaceC = length(indices) > 0 ? spaceAB[indices] : ProductSpace(cnumber(typeof(spaceAB[1])))
-    return similar(A, T, spaceC)
+    return similar(A, T, spaceAB[indices])
 end
 
 # Methods below are only implemented for CartesianTensor or ComplexTensor:
