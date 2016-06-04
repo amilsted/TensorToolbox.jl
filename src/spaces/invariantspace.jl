@@ -10,11 +10,15 @@ end
 
 # Additional constructors
 InvariantSpace(P::InvariantSpace) = P
-InvariantSpace{S<:UnitaryRepresentationSpace}(P::ProductSpace{S}) = InvariantSpace(P.spaces)
+InvariantSpace{S<:UnitaryRepresentationSpace}(P::ProductSpace{S}) = InvariantSpace(S, P.spaces)
 InvariantSpace{S<:UnitaryRepresentationSpace}(V::S,Vlist::S...) = InvariantSpace(tuple(V,Vlist...))
+InvariantSpace{S<:UnitaryRepresentationSpace,N}(spaces::NTuple{N,S}) = InvariantSpace(S, spaces)
 
 # Specific constructors for Abelian Sectors
-function InvariantSpace{G<:Abelian,N}(spaces::NTuple{N,AbelianSpace{G}})
+function InvariantSpace{G<:Abelian,N}(::Type{AbelianSpace{G}}, spaces::NTuple{N,AbelianSpace{G}})
+    if N == 0
+        return InvariantSpace{G,AbelianSpace{G},N}(spaces,Dict())
+    end
     sectorlist=_invariantsectors(spaces)
     dims=Dict{eltype(sectorlist),Int}()
     sizehint!(dims,length(sectorlist))
@@ -38,11 +42,11 @@ sectortype{G}(P::InvariantSpace{G}) = G
 sectortype{G,S,N}(::Type{InvariantSpace{G,S,N}}) = G
 
 # Interaction with product spaces
-⊗{G,S}(P1::InvariantSpace{G,S}, P2::InvariantSpace{G,S}) = InvariantSpace(tuple(P1.spaces..., P2.spaces...))
-⊗{G,S}(P1::ProductSpace{S}, P2::InvariantSpace{G,S}) = ProductSpace(tuple(P1.spaces..., P2.spaces...))
-⊗{G,S}(P1::InvariantSpace{G,S}, P2::ProductSpace{S}) = ProductSpace(tuple(P1.spaces..., P2.spaces...))
-⊗{G,S}(V1::S, P2::InvariantSpace{G,S}) = ProductSpace(tuple(V1, P2.spaces...))
-⊗{G,S}(P1::InvariantSpace{G,S}, V2::S) = ProductSpace(tuple(P1.spaces..., V2))
+⊗{G,S}(P1::InvariantSpace{G,S}, P2::InvariantSpace{G,S}) = InvariantSpace(S, tuple(P1.spaces..., P2.spaces...))
+⊗{G,S}(P1::ProductSpace{S}, P2::InvariantSpace{G,S}) = ProductSpace(S, tuple(P1.spaces..., P2.spaces...))
+⊗{G,S}(P1::InvariantSpace{G,S}, P2::ProductSpace{S}) = ProductSpace(S, tuple(P1.spaces..., P2.spaces...))
+⊗{G,S}(V1::S, P2::InvariantSpace{G,S}) = ProductSpace(S, tuple(V1, P2.spaces...))
+⊗{G,S}(P1::InvariantSpace{G,S}, V2::S) = ProductSpace(S, tuple(P1.spaces..., V2))
 
 # Convention on dual, conj, transpose and ctranspose of tensor product spaces
 dual{G,S,N}(P::InvariantSpace{G,S,N}) = InvariantSpace{G,S,N}(ntuple(n->dual(P[n]),N),[conj(s)=>dim(P,s) for s in sectors(P)])

@@ -54,10 +54,12 @@ Base.done(P::ProductSpace, state) = done(P.spaces, state)
 
 # Show method
 function Base.show(io::IO, P::ProductSpace)
+    print(io,"ProductSpace(")
     for i in 1:length(P)
         i==1 || print(io," ⊗ ")
         show(io, P[i])
     end
+    print(io, ")")
 end
 
 # # Promotion and conversion

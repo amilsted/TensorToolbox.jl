@@ -15,7 +15,7 @@ immutable InvariantTensor{G,S,T,N} <: AbstractTensor{S,InvariantSpace,T,N}
     space::InvariantSpace{G,S,N}
     _datasectors::Dict{NTuple{N,G},Array{T,N}}
     function InvariantTensor(data::Array{T},space::InvariantSpace{G,S,N})
-        if length(data)!=dim(space)
+        if !(length(data)==dim(space) || ndims(data) == dim(space) == 0)
             throw(DimensionMismatch("data not of right size"))
         end
         if promote_type(T,eltype(S))!=eltype(S)
@@ -257,197 +257,116 @@ Base.setindex!{G,S,T,N}(t::InvariantTensor{G,S,T,N},v::Number,s::NTuple{N,G})=fi
 
 # Tensor Operations
 #-------------------
-scalar(t::InvariantTensor)=iscnumber(space(t)) ? t.data[1] : throw(SpaceError("Not a scalar"))
+TensorOperations.scalar(t::InvariantTensor)=iscnumber(space(t)) ? t.data[1] : throw(SpaceError("Not a scalar"))
 
-function tensorcopy!(t1::InvariantTensor,labels1,t2::InvariantTensor,labels2)
-    # Replaces tensor t2 with t1
-    N1=numind(t1)
-    perm=indexin(labels2,labels1)
+function TensorOperations.add!{CA}(α, A::InvariantTensor, ::Type{Val{CA}}, β, C::InvariantTensor, indCinA)
+    # Implements C = β*C + α*permute(op(A))
+    NA = numind(A)
 
-    length(perm) == N1 || throw(TensorOperations.LabelError("invalid label specification"))
-    isperm(perm) || throw(TensorOperations.LabelError("invalid label specification"))
-    for i = 1:N1
-        space(t1,i) == space(t2,perm[i]) || throw(SpaceError())
+    spaceA = CA == :C ? conj(space(A)) : space(A)
+    
+    for i = 1:NA
+        spaceA[indCinA[i]] == space(C,i) || throw(SpaceError("incompatible index spaces of tensors"))
     end
-    N1==0 && (t2.data[1]=t1.data[1]; return t2)
-    perm==[1:N1] && return copy!(t2,t1)
-    for s in sectors(t1)
-        TensorOperations.tensorcopy_native!(t1[s],t2[s[perm]],perm)
-    end
-    return t2
-end
-function tensoradd!(alpha::Number,t1::InvariantTensor,labels1,beta::Number,t2::InvariantTensor,labels2)
-    # Replaces tensor t2 with beta*t2+alpha*t1
-    N1=numind(t1)
-    perm=indexin(labels2,labels1)
 
-    length(perm) == N1 || throw(TensorOperations.LabelError("invalid label specification"))
-    isperm(perm) || throw(TensorOperations.LabelError("invalid label specification"))
-    for i = 1:N1
-        space(t1,perm[i]) == space(t2,i) || throw(SpaceError("incompatible index spaces of tensors"))
-    end
-    N1==0 && (t2.data[1]=beta*t2.data[1]+alpha*t1.data[1]; return t2)
-    perm==[1:N1] && return (beta==0 ? scale!(copy!(t2,t1),alpha) : Base.LinAlg.axpy!(alpha,t1,scale!(t2,beta)))
-    if beta==0
-        for s in sectors(t1)
-            TensorOperations.tensorcopy_native!(t1[s],t2[s[perm]],perm)
+    if NA == 0 #scalars
+        C.data[1] = β*C.data[1] + α*A.data[1]
+    elseif indCinA == collect(1:NA) #trivial permutation
+        if β == 0
+            scale!(copy!(C,A), α)
+        else
+            Base.LinAlg.axpy!(α, A, scale!(C, β))
         end
-        scale!(t2,alpha)
     else
-        for s in sectors(t1)
-            TensorOperations.tensoradd_native!(alpha,t1[s],beta,t2[s[perm]],perm)
+        for s in sectors(A)
+            TensorOperations.add!(α, A[s], Val{CA}, β, C[s[indCinA]], indCinA)
         end
     end
-    return t2
-end
-function tensortrace!(alpha::Number,A::InvariantTensor,labelsA,beta::Number,C::InvariantTensor,labelsC)
-    NA=numind(A)
-    NC=numind(C)
-    (length(labelsA)==NA && length(labelsC)==NC) || throw(LabelError("invalid label specification"))
-    NA==NC && return tensoradd!(alpha,A,labelsA,beta,C,labelsC) # nothing to trace
 
-    oindA=indexin(labelsC,labelsA)
-    clabels=unique(setdiff(labelsA,labelsC))
-    NA==NC+2*length(clabels) || throw(LabelError("invalid label specification"))
-
-    cindA1=Array(Int,length(clabels))
-    cindA2=Array(Int,length(clabels))
-    for i=1:length(clabels)
-        cindA1[i]=findfirst(labelsA,clabels[i])
-        cindA2[i]=findnext(labelsA,clabels[i],cindA1[i]+1)
-    end
-    isperm(vcat(oindA,cindA1,cindA2)) || throw(LabelError("invalid label specification"))
-
-    for i = 1:NC
-        space(A,oindA[i]) == space(C,i) || throw(SpaceError("space mismatch"))
-    end
-    for i = 1:div(NA-NC,2)
-        space(A,cindA1[i]) == dual(space(A,cindA2[i])) || throw(SpaceError("space mismatch"))
-    end
-
-    betadict=[s=>beta for s in sectors(C)]
-    for s1 in sectors(A)
-        s2=s1[oindA]
-        TensorOperations.tensortrace_native!(alpha,A[s1],betadict[s2],C[s2],oindA,cindA1,cindA2)
-        betadict[s2]=one(beta)
-    end
     return C
 end
-function tensorcontract!(alpha::Number,A::InvariantTensor,labelsA,conjA::Char,B::InvariantTensor,labelsB,conjB::Char,beta::Number,C::InvariantTensor,labelsC;method=:BLAS)
-    # Get properties of input arrays
-    NA=numind(A)
-    NB=numind(B)
-    NC=numind(C)
 
-    # Process labels, do some error checking and analyse problem structure
-    if NA!=length(labelsA) || NB!=length(labelsB) || NC!=length(labelsC)
-        throw(TensorOperations.LabelError("invalid label specification"))
-    end
-    ulabelsA=unique(labelsA)
-    ulabelsB=unique(labelsB)
-    ulabelsC=unique(labelsC)
-    if NA!=length(ulabelsA) || NB!=length(ulabelsB) || NC!=length(ulabelsC)
-        throw(TensorOperations.LabelError("tensorcontract requires unique label for every index of the tensor, handle inner contraction first with tensortrace"))
-    end
+function TensorOperations.trace!{CA}(α, A::InvariantTensor, ::Type{Val{CA}}, β, C::InvariantTensor, indCinA, cindA1, cindA2)
+    NA = numind(A)
+    NC = numind(C)
 
-    clabels=intersect(ulabelsA,ulabelsB)
-    numcontract=length(clabels)
-    olabelsA=intersect(ulabelsA,ulabelsC)
-    numopenA=length(olabelsA)
-    olabelsB=intersect(ulabelsB,ulabelsC)
-    numopenB=length(olabelsB)
-
-    if numcontract+numopenA!=NA || numcontract+numopenB!=NB || numopenA+numopenB!=NC
-        throw(LabelError("invalid contraction pattern"))
-    end
-
-    # Compute and contraction indices and check size compatibility
-    cindA=indexin(clabels,ulabelsA)
-    oindA=indexin(olabelsA,ulabelsA)
-    oindCA=indexin(olabelsA,ulabelsC)
-    cindB=indexin(clabels,ulabelsB)
-    oindB=indexin(olabelsB,ulabelsB)
-    oindCB=indexin(olabelsB,ulabelsC)
-
-    # check size compatibility
-    spaceA=space(A)
-    spaceB=space(B)
-    spaceC=space(C)
-
-    cspaceA=spaceA[cindA]
-    cspaceB=spaceB[cindB]
-    ospaceA=spaceA[oindA]
-    ospaceB=spaceB[oindB]
-
-    conjA=='C' || conjA=='N' || throw(ArgumentError("conjA should be 'C' or 'N'."))
-    conjB=='C' || conjB=='N' || throw(ArgumentError("conjB should be 'C' or 'N'."))
-
-    if conjA == conjB
-        for i=1:numcontract
-            cspaceA[i] == dual(cspaceB[i]) || throw(SpaceError("incompatible index space for label $(clabels[i])"))
-        end
-    else
-        for i=1:numcontract
-            cspaceA[i] == dual(conj(cspaceB[i])) || throw(SpaceError("incompatible index space for label $(clabels[i])"))
-        end
-    end
-    for i=1:numopenA
-        spaceC[oindCA[i]] == (conjA=='C' ? conj(ospaceA[i]) : ospaceA[i]) || throw(SpaceError("incompatible index space for label $(olabelsA[i])"))
-    end
-    for i=1:numopenB
-        spaceC[oindCB[i]] == (conjB=='C' ? conj(ospaceB[i]) : ospaceB[i]) || throw(SpaceError("incompatible index space for label $(olabelsB[i])"))
+    spaceA = CA == :C ? conj(space(A)) : space(A)
+    
+    for i = 1:NC
+        spaceA[indCinA[i]] == space(C,i) || throw(SpaceError("space mismatch"))
     end
     
-    if beta==0
-        fill!(C,0)
+    for i = 1:div(NA-NC, 2)
+        spaceA[cindA1[i]] == dual(spaceA[cindA2[i]]) || throw(SpaceError("space mismatch"))
     end
-    betadict=[s=>beta for s in sectors(C)]
-    posC=indexin(ulabelsC,vcat(ulabelsA,ulabelsB))
-    if method==:BLAS
-        for sA in sectors(A), sB in sectors(B)
-            if (conjA==conjB ? sA[cindA]==map(conj,sB[cindB]) : sA[cindA]==sB[cindB])
-                sC=tuple((conjA=='C' ? map(conj,sA) : sA)...,(conjB=='C' ? map(conj,sB) : sB)...)[posC]
-                TensorOperations.tensorcontract_blas!(alpha,A[sA],conjA,B[sB],conjB,betadict[sC],C[sC],oindA,cindA,oindB,cindB,oindCA,oindCB)
-                betadict[sC]=one(beta)
-            end
+
+    βdict = [s=>β for s in sectors(C)]
+    for sA in sectors(A)
+        if sA[cindA1] != map(conj, sA[cindA2])
+            continue
         end
-    elseif method==:native
-        if NA>=NB
-            for sA in sectors(A), sB in sectors(B)
-                if (conjA==conjB ? sA[cindA]==map(conj,sB[cindB]) : sA[cindA]==sB[cindB])
-                    sC=tuple((conjA=='C' ? map(conj,sA) : sA)...,(conjB=='C' ? map(conj,sB) : sB)...)[posC]
-                    TensorOperations.tensorcontract_native!(alpha,A[sA],conjA,B[sB],conjB,betadict[sC],C[sC],oindA,cindA,oindB,cindB,oindCA,oindCB)
-                    betadict[sC]=one(beta)
-                end
-            end
-        else
-            for sA in sectors(A), sB in sectors(B)
-                if (conjA==conjB ? sA[cindA]==map(conj,sB[cindB]) : sA[cindA]==sB[cindB])
-                    sC=tuple((conjA=='C' ? map(conj,sA) : sA)...,(conjB=='C' ? map(conj,sB) : sB)...)[posC]
-                    TensorOperations.tensorcontract_native!(alpha,B[sB],conjB,A[sA],conjA,betadict[sC],C[sC],oindB,cindB,oindA,cindA,oindCB,oindCA)
-                    betadict[sC]=one(beta)
-                end
-            end
-        end
-    else
-        throw(ArgumentError("method should be :BLAS or :native"))
+        sC = sA[indCinA]
+        TensorOperations.trace!(α, A[sA], Val{CA}, βdict[sC], C[sC], indCinA, cindA1, cindA2)
+        βdict[sC] = one(β)
     end
+    
     return C
 end
 
-function tensorproduct!(alpha::Number,A::InvariantTensor,labelsA,B::InvariantTensor,labelsB,beta::Number,C::InvariantTensor,labelsC)
-    # Get properties of input arrays
-    NA=numind(A)
-    NB=numind(B)
-    NC=numind(C)
+function TensorOperations.contract!{CA,CB,ME}(α, A::InvariantTensor, ::Type{Val{CA}}, B::InvariantTensor, ::Type{Val{CB}}, β, C::InvariantTensor, oindA, cindA, oindB, cindB, indCinoAB, ::Type{Val{ME}}=Val{:BLAS})
+    # check size compatibility
+    spaceA = CA == :C ? conj(space(A)) : space(A)
+    spaceB = CB == :C ? conj(space(B)) : space(B)
+    spaceC = space(C)
 
-    # Process labels, do some error checking and analyse problem structure
-    if NA!=length(labelsA) || NB!=length(labelsB) || NC!=length(labelsC)
-        throw(TensorOperations.LabelError("invalid label specification"))
+    cspaceA = spaceA[cindA]
+    cspaceB = spaceB[cindB]
+
+    ospaceA = spaceA[oindA]
+    ospaceB = spaceB[oindB]
+
+    ospaceAB = ospaceA ⊗ ospaceB
+
+    for i = 1:length(cspaceA)
+        cspaceA[i] == dual(cspaceB[i]) || throw(SpaceError("A and B have incompatible index spaces"))
     end
-    NC==NA+NB || throw(TensorOperations.LabelError("invalid label specification for tensor product"))
 
-    tensorcontract!(alpha,A,labelsA,'N',B,labelsB,'N',beta,C,labelsC;method=:native)
+    for i in 1:length(indCinoAB)
+        spaceC[i] == ospaceAB[indCinoAB[i]] || throw(SpaceError("C has incompatible index space"))
+    end
+
+    if length(indCinoAB) == 0
+        for sA in sectors(spaceA), sB in sectors(spaceB)
+            if sA[cindA] == map(conj, sB[cindB])
+                Cscal = pointer_to_array(pointer(C.data, 1), ())
+                TensorOperations.contract!(α, A[sA], Val{CA}, B[sB], Val{CB}, β, Cscal, oindA, cindA, oindB, cindB, indCinoAB, Val{ME})
+                β = one(β)
+            end
+        end
+    else
+        βdict = [s=>β for s in sectors(C)]
+        for sA in sectors(spaceA), sB in sectors(spaceB)
+            if sA[cindA] == map(conj, sB[cindB])
+                sC = tuple(sA[oindA]..., sB[oindB]...)[indCinoAB]
+                TensorOperations.contract!(α, A[sA], Val{CA}, B[sB], Val{CB}, βdict[sC], C[sC], oindA, cindA, oindB, cindB, indCinoAB, Val{ME})
+                βdict[sC] = one(β)
+            end
+        end
+    end
+
+    return C
+end
+
+function TensorOperations.similar_from_indices{T,CA}(::Type{T}, indices, A::InvariantTensor, ::Type{Val{CA}}=Val{:N})
+    spaceA = CA == :C ? conj(space(A)) : space(A)
+    return similar(A, T, spaceA[indices])
+end
+
+function TensorOperations.similar_from_indices{T,CA,CB}(::Type{T}, indices, A::InvariantTensor, B::InvariantTensor, ::Type{Val{CA}}=Val{:N}, ::Type{Val{CB}}=Val{:N})
+    spaceA = CA == :C ? conj(space(A)) : space(A)
+    spaceB = CB == :C ? conj(space(B)) : space(B)
+    spaceAB = spaceA ⊗ spaceB
+    return similar(A, T, spaceAB[indices])
 end
 
 # Index methods
