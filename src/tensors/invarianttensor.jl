@@ -39,10 +39,15 @@ function Base.show{G,S,T,N}(io::IO,t::InvariantTensor{G,S,T,N})
     print(io,"[")
     showcompact(io,t.space.dims)
     println(io,"]:")
-    for s in sectors(t)
-        println(io,"$s:")
-        Base.showarray(io,t[s];header=false)
-        println(io,"")
+    sec = sectors(t)
+    if length(sec) == 0
+        println(io,t.data[1])
+    else
+        for s in sectors(t)
+            println(io,"$s:")
+            Base.showarray(io,t[s];header=false)
+            println(io,"")
+        end
     end
 end
 
@@ -78,10 +83,10 @@ Base.rand{T}(::Type{T},P::InvariantSpace)=tensor(rand(T,vdim(dim(P))),P)
 Base.rand(P::InvariantSpace)=rand(Float64,P)
 
 function Base.eye{S<:UnitaryRepresentationSpace,T}(::Type{T},::Type{InvariantSpace},V::S)
-    t=zeros(T,invariant(V⊗dual(V))) #FIXME: This will not work in the zero-dim case
+    t=zeros(T,invariant(V⊗dual(V)))
     for s in sectors(V)
         for n=1:dim(V,s)
-            t[(s,conj(s))][n,n]=1
+            t[(s,conj(s))][n,n] = one(T)
         end
     end
     return t
