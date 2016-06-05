@@ -56,11 +56,13 @@ space(t::InvariantTensor)=t.space
 # with data
 tensor{G,S,T,N}(data::Array{T},P::InvariantSpace{G,S,N})=InvariantTensor{G,S,T,N}(data,P)
 
+vdim(dim::Int) = dim == 0 ? () : (dim)
+
 # without data
-tensor{T}(::Type{T},P::InvariantSpace)=tensor(Array(T,dim(P)),P)
+tensor{T}(::Type{T},P::InvariantSpace)=tensor(Array(T,vdim(dim(P))),P)
 tensor(P::InvariantSpace)=tensor(Float64,V)
 
-Base.similar{G,S,T,N}(t::InvariantTensor{G,S},::Type{T},P::InvariantSpace{G,S,N}=space(t))=tensor(similar(t.data,T,dim(P)),P)
+Base.similar{G,S,T,N}(t::InvariantTensor{G,S},::Type{T},P::InvariantSpace{G,S,N}=space(t))=tensor(similar(t.data,T,vdim(dim(P))),P)
 Base.similar{G,S,T,N}(t::InvariantTensor{G,S},::Type{T},P::ProductSpace{S,N})=similar(t,T,invariant(P))
 Base.similar{G,S,T}(t::InvariantTensor{G,S},::Type{T},V::S)=similar(t,T,invariant(V))
 Base.similar{G,S,N}(t::InvariantTensor{G,S},P::InvariantSpace{G,S,N}=space(t))=similar(t,eltype(t),P)
@@ -69,14 +71,14 @@ Base.similar{G,S}(t::InvariantTensor{G,S},V::S)=similar(t,eltype(t),V)
 
 Base.zero(t::InvariantTensor)=tensor(zero(t.data),space(t))
 
-Base.zeros{T}(::Type{T},P::InvariantSpace)=tensor(zeros(T,dim(P)),P)
+Base.zeros{T}(::Type{T},P::InvariantSpace)=tensor(zeros(T,vdim(dim(P))),P)
 Base.zeros(P::InvariantSpace)=zeros(Float64,P)
 
-Base.rand{T}(::Type{T},P::InvariantSpace)=tensor(rand(T,dim(P)),P)
+Base.rand{T}(::Type{T},P::InvariantSpace)=tensor(rand(T,vdim(dim(P))),P)
 Base.rand(P::InvariantSpace)=rand(Float64,P)
 
 function Base.eye{S<:UnitaryRepresentationSpace,T}(::Type{T},::Type{InvariantSpace},V::S)
-    t=zeros(T,invariant(V⊗dual(V)))
+    t=zeros(T,invariant(V⊗dual(V))) #FIXME: This will not work in the zero-dim case
     for s in sectors(V)
         for n=1:dim(V,s)
             t[(s,conj(s))][n,n]=1
