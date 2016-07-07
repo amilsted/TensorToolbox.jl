@@ -71,6 +71,9 @@ sectortype{G}(V::UnitaryRepresentationSpace{G}) = G
 sectortype{G}(::Type{UnitaryRepresentationSpace{G}}) = G
 sectortype{S<:UnitaryRepresentationSpace}(::Type{S}) = sectortype(super(S))
 
+#This is a useful shorthand for handling, e.g. the output of sectors()
+Base.conj{N,S<:Sector}(nsec::NTuple{N,S}) = map(conj, nsec)
+
 # AbelianSpace: general space that is graded by abelian sectors (i.e. one-dimensional representations)
 include("spaces/abelianspace.jl")
 

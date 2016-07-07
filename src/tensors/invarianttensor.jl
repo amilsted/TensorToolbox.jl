@@ -217,7 +217,7 @@ end
 function Base.conj!(t1::InvariantTensor,t2::InvariantTensor)
     space(t1)==conj(space(t2)) || throw(SpaceError())
     for s in sectors(t2)
-        copy!(t1[map(conj,s)],t2[s])
+        copy!(t1[conj(s)],t2[s])
     end
     conj!(t1.data)
     return t1
@@ -307,14 +307,25 @@ function TensorOperations.trace!{CA}(α, A::InvariantTensor, ::Type{Val{CA}}, β
         spaceA[cindA1[i]] == dual(spaceA[cindA2[i]]) || throw(SpaceError("space mismatch"))
     end
 
-    βdict = [s=>β for s in sectors(C)]
-    for sA in sectors(A)
-        if sA[cindA1] != map(conj, sA[cindA2])
-            continue
+    if length(indCinA) == 0
+        Cscal = pointer_to_array(pointer(C.data, 1), ())
+        for sA in sectors(A)
+            if sA[cindA1] != conj(sA[cindA2])
+                continue
+            end
+            TensorOperations.trace!(α, A[sA], Val{CA}, β, Cscal, indCinA, cindA1, cindA2)
+            β = one(β)
         end
-        sC = sA[indCinA]
-        TensorOperations.trace!(α, A[sA], Val{CA}, βdict[sC], C[sC], indCinA, cindA1, cindA2)
-        βdict[sC] = one(β)
+    else
+        βdict = [s=>β for s in sectors(C)]
+        for sA in sectors(A)
+            if sA[cindA1] != conj(sA[cindA2])
+                continue
+            end
+            sC = sA[indCinA]
+            TensorOperations.trace!(α, A[sA], Val{CA}, βdict[sC], C[sC], indCinA, cindA1, cindA2)
+            βdict[sC] = one(β)
+        end
     end
     
     return C
@@ -343,19 +354,23 @@ function TensorOperations.contract!{CA,CB,ME}(α, A::InvariantTensor, ::Type{Val
     end
 
     if length(indCinoAB) == 0
+        Cscal = pointer_to_array(pointer(C.data, 1), ())
         for sA in sectors(spaceA), sB in sectors(spaceB)
-            if sA[cindA] == map(conj, sB[cindB])
-                Cscal = pointer_to_array(pointer(C.data, 1), ())
-                TensorOperations.contract!(α, A[sA], Val{CA}, B[sB], Val{CB}, β, Cscal, oindA, cindA, oindB, cindB, indCinoAB, Val{ME})
+            if sA[cindA] == conj(sB)[cindB]
+                sA_ = (CA==:C?conj(sA):sA)
+                sB_ = (CB==:C?conj(sB):sB)
+                TensorOperations.contract!(α, A[sA_], Val{CA}, B[sB_], Val{CB}, β, Cscal, oindA, cindA, oindB, cindB, indCinoAB, Val{ME})
                 β = one(β)
             end
         end
     else
         βdict = [s=>β for s in sectors(C)]
         for sA in sectors(spaceA), sB in sectors(spaceB)
-            if sA[cindA] == map(conj, sB[cindB])
+            if sA[cindA] == conj(sB)[cindB]
                 sC = tuple(sA[oindA]..., sB[oindB]...)[indCinoAB]
-                TensorOperations.contract!(α, A[sA], Val{CA}, B[sB], Val{CB}, βdict[sC], C[sC], oindA, cindA, oindB, cindB, indCinoAB, Val{ME})
+                sA_ = (CA == :C ? conj(sA) : sA) #undo conjugation for indexing of original tensors
+                sB_ = (CB == :C ? conj(sB) : sB)
+                TensorOperations.contract!(α, A[sA_], Val{CA}, B[sB_], Val{CB}, βdict[sC], C[sC], oindA, cindA, oindB, cindB, indCinoAB, Val{ME})
                 βdict[sC] = one(β)
             end
         end
@@ -365,13 +380,13 @@ function TensorOperations.contract!{CA,CB,ME}(α, A::InvariantTensor, ::Type{Val
 end
 
 function TensorOperations.similar_from_indices{T,CA}(::Type{T}, indices, A::InvariantTensor, ::Type{Val{CA}}=Val{:N})
-    spaceA = CA == :C ? conj(space(A)) : space(A)
+    spaceA = (CA == :C ? conj(space(A)) : space(A))
     return similar(A, T, spaceA[indices])
 end
 
 function TensorOperations.similar_from_indices{T,CA,CB}(::Type{T}, indices, A::InvariantTensor, B::InvariantTensor, ::Type{Val{CA}}=Val{:N}, ::Type{Val{CB}}=Val{:N})
-    spaceA = CA == :C ? conj(space(A)) : space(A)
-    spaceB = CB == :C ? conj(space(B)) : space(B)
+    spaceA = (CA == :C ? conj(space(A)) : space(A))
+    spaceB = (CB == :C ? conj(space(B)) : space(B))
     spaceAB = spaceA ⊗ spaceB
     return similar(A, T, spaceAB[indices])
 end
